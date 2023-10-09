@@ -1,0 +1,55 @@
+version: "3.9"
+
+services:
+  php:
+    container_name: php-kanban
+    build:
+      context: ./docker/php
+    restart: always
+    volumes:
+      - ./app:/var/www
+    networks:
+      - kanban
+    environment:
+      PHP_IDE_CONFIG: 'serverName=Docker'
+  nginx:
+    container_name: nginx-kanban
+    build:
+      context: ./docker/nginx
+    restart: always
+    ports:
+      - ${NGINX_HOST_HTTP_PORT}:80
+      - ${NGINX_HOST_HTTPS_PORT}:443
+    volumes:
+      - ./app:/var/www
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+      - ./docker/volumes/nginx/logs:/var/log/nginx
+      - ./docker/nginx/certs/:/etc/ssl/certs:ro
+    networks:
+      - kanban
+  db:
+    container_name: postgres-kanban
+    image: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_AUTH_METHOD: trust
+    labels:
+      com.symfony.server.service-prefix: 'DATABASE'
+    volumes:
+      - ./docker/volumes/db:/var/lib/postgresql/data
+    networks:
+      - kanban
+  rabbitmq:
+    container_name: rabbitmq-kanban
+    image: rabbitmq:3.10.7-management
+    ports:
+      - 15672:15672
+    networks:
+      - kanban
+networks:
+  kanban:
+    driver: bridge
